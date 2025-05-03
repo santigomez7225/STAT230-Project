@@ -1,0 +1,99 @@
+---
+title: "Homicide Rates Analysis: Colombia vs Mexico (1990–2018)"
+author: Santiago Gomez Garista, Sebastian Duran Castiblanco
+format:
+  html:
+    embed-resources: true
+---
+
+1. Has the homicide rate significantly differed between Mexico and Colombia over time?
+
+Yes, there was a correlation difference in homicide rates between Mexico and Colombia from the year 1990 to 2018, where Colombia was seeing higher rates.  
+
+
+
+
+2. Is there a statistically significant trend in Colombia's homicide rate from 1990 to 2018?
+
+Yes, this showed Colombia’s homicide rate had a big downward trend from the year 1990 to 2018, where there was a major improvement over time in the early 2000s. 
+
+
+
+## Load Libraries
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+data <- read.csv("data/API_VC.IHR.PSRC.P5_DS2_en_csv_v2_21252.csv", skip = 4)
+
+df <- data %>%
+  filter(Country.Name %in% c("Colombia", "Mexico"))
+
+# Fix: use column names like X1990, X1991, ...
+years <- paste0("X", 1990:2018)
+
+df_years <- df %>%
+  select(Country.Name, Country.Code, all_of(years)) %>%
+  pivot_longer(cols = all_of(years), names_to = "Year", values_to = "Homicide_Rate") %>%
+  filter(!is.na(Homicide_Rate)) %>%
+  mutate(Year = as.integer(sub("X", "", Year)))  # Remove 'X' and convert to number
+
+```
+
+```{r}
+ggplot(df_years, aes(x = Homicide_Rate)) +
+  geom_histogram(binwidth = 2, fill = "steelblue", color = "black") +
+  labs(title = "Histogram of Homicide Rates (1990–2018)", x = "Homicide Rate", y = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(df_years, aes(x = Country.Name, y = Homicide_Rate, fill = Country.Name)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Homicide Rates by Country", x = "Country", y = "Homicide Rate") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(df_years, aes(x = Year, y = Homicide_Rate, color = Country.Name)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatterplot of Homicide Rates Over Time", x = "Year", y = "Homicide Rate") +
+  theme_minimal()
+```
+
+```{r}
+df_years %>%
+  group_by(Country.Name) %>%
+  summarise(
+    Mean = mean(Homicide_Rate),
+    SD = sd(Homicide_Rate),
+    Min = min(Homicide_Rate),
+    Max = max(Homicide_Rate)
+  )
+```
+
+```{r}
+colombia <- df_years %>% filter(Country.Name == "Colombia") %>% pull(Homicide_Rate)
+mexico <- df_years %>% filter(Country.Name == "Mexico") %>% pull(Homicide_Rate)
+
+t_test <- t.test(colombia, mexico, var.equal = FALSE)
+t_test
+
+pval <- t_test$p.value
+diff <- mean(colombia) - mean(mexico)
+```
+Summary:
+
+We were able to examine the intentional homicide rates per 100,000 people in Colombia and Mexico from the year 1990 to 2018 using the World Bank data website. We were able to create diagrams for a visualization of the distributions and trends over time. We also were able to calculate the mean, standard deviation, minimum, and maximum for the respective countries. As well as two-sample and t-test were made to determine if there was any difference in homicide rates between both countries and a linear regression model was made to Colombia's data to assess trends across the years. 
+
+With the data shown, Colombia had a higher homicide rate than Mexico on average during that time, mostly in the 1990’s. The t-test confirmed it with a p-value less than 0.05, which meant that difference in means was significant. A point to mention is that linear regression analysis showed a clear downward trend in Colombia’s homicide rate from the year 1990 to 2018, this was shown to us with a negative slope. With the data again, we can see that over time, the high levels of violence that the country once had, has been declining over time. For Mexico, it kept a lower and stable level during this same period.
+
+
+
+
+
